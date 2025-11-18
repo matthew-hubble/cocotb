@@ -116,6 +116,7 @@ $(SIM_VLOG_FILELIST): $(VERILOG_SOURCES) | $(SIM_BUILD)
 $(SIM_BUILD)/_vmake.vlogan: $(SIM_VLOG_FILELIST) $(CUSTOM_COMPILE_DEPS)
 	cd $(@D) && \
 	vlogan $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) $(COMPILE_ARGS) $(EXTRA_ARGS) -l vlog.log -f $(<F)
+	touch $@
 
 ELAB_DEPS += $(SIM_BUILD)/_vmake.vlogan
 endif
@@ -137,6 +138,7 @@ $(SIM_VHDL_FILELIST): $(VHDL_SOURCES) | $(SIM_BUILD)
 $(SIM_BUILD)/_vmake.vhdlan: $(SIM_VHDL_FILELIST) $(CUSTOM_COMPILE_DEPS)
 	cd $(@D) && \
 	vhdlan $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) $(COMPILE_ARGS) $(EXTRA_ARGS) -l vhdl.log -f $(<F)
+	touch $@
 
 ELAB_DEPS += $(SIM_BUILD)/_vmake.vhdlan
 endif
