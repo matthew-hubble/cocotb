@@ -45,9 +45,11 @@ else
      export VCS_BIN_DIR
 endif
 
+# Pedantic Make
 COMPILE_ARGS ?=
 EXTRA_ARGS   ?=
 ELAB_ARGS    ?=
+GUI          ?=
 
 #ifdef VERILOG_INCLUDE_DIRS
 #    COMPILE_ARGS += $(addprefix +incdir+, $(VERILOG_INCLUDE_DIRS))
@@ -70,8 +72,7 @@ ELAB_ARGS += +acc+3
 # Enables globally debug capabilities.
 ELAB_ARGS += -debug_access+all
 
-# TODO:
-# investigate +vpi+1 option which reduces memory requirements
+# +vpi+1 option is included automatically when -debug_access is specified.
 
 # Compute SHA256 checksum of argument $1.
 sha256sum = $(strip $(shell printf '%s' "$1" | sha256sum | awk '{ print $$1 }'))
@@ -92,30 +93,31 @@ ifneq ($(VERILOG_SOURCES),)
 vlog_filelist_base = filelist_vlog
 SIM_VLOG_FILELIST  = $(SIM_BUILD)/$(vlog_filelist_base)-$(call sha256sum,$(VERILOG_SOURCES)).f
 
-#$(file >tmp.$(@F)) $(foreach f,$(VERILOG_SOURCES),$(file >>tmp.$(@F),$(abspath $(f))))
 $(SIM_VLOG_FILELIST): $(VERILOG_SOURCES) | $(SIM_BUILD)
 	rm -f $(SIM_BUILD)/$(vlog_filelist_base)*.f
 	@touch $@
 	@echo "-sverilog" >> $@; \
 	for f in $(foreach f,$(VERILOG_INCLUDE_DIRS),$(abspath $(f))); do \
-	  echo "+incdir+$$f" >> $@; \
+	    echo "+incdir+$$f" >> $@; \
 	done ; \
 	if [ ! -z "$(VERILOG_LIBRARY_DIRS)" ] ; then \
-	  echo "+libext+.sv+.v" >> $@; \
-	  for f in $(foreach f,$(VERILOG_LIBRARY_DIRS),$(abspath $(f))); do \
-	    echo "-y $$f" >> $@; \
-	  done ; \
+	    echo "+libext+.sv+.v" >> $@; \
+	    for f in $(foreach f,$(VERILOG_LIBRARY_DIRS),$(abspath $(f))); do \
+	        echo "-y $$f" >> $@; \
+	    done ; \
 	fi ; \
 	for f in $(foreach f,$(VERILOG_INCLUDE_DIRS),$(abspath $(f))); do \
-	  echo "+incdir+$$f" >> $@; \
+	    echo "+incdir+$$f" >> $@; \
 	done ; \
 	for f in $(foreach f,$(VERILOG_SOURCES),$(abspath $(f))); do \
-	  echo "$$f" >> $@; \
+	    echo "$$f" >> $@; \
 	done
 
 $(SIM_BUILD)/_vmake.vlogan: $(SIM_VLOG_FILELIST) $(CUSTOM_COMPILE_DEPS)
 	cd $(@D) && \
-	vlogan $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) $(COMPILE_ARGS) $(EXTRA_ARGS) -l vlog.log -f $(<F)
+	vlogan $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) +define+COCOTB_SIM=1 \
+	    -timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
+	    $(COMPILE_ARGS) $(EXTRA_ARGS) -l vlog.log -f $(<F)
 	touch $@
 
 ELAB_DEPS += $(SIM_BUILD)/_vmake.vlogan
@@ -128,16 +130,16 @@ ifneq ($(VHDL_SOURCES),)
 vhdl_filelist_base = filelist_vhdl
 SIM_VHDL_FILELIST  = $(SIM_BUILD)/$(vhdl_filelist_base)-$(call sha256sum,$(VHDL_SOURCES)).f
 
-#$(file >tmp.$(@F)) $(foreach f,$(VHDL_SOURCES),$(file >>tmp.$(@F),$(abspath $(f))))
 $(SIM_VHDL_FILELIST): $(VHDL_SOURCES) | $(SIM_BUILD)
 	rm -f $(SIM_BUILD)/$(vhdl_filelist_base)*.f
 	@for f in $(foreach f,$(VHDL_SOURCES),$(abspath $(f))); do \
-	  echo "$$f" >> $@; \
+	    echo "$$f" >> $@; \
 	done
 
 $(SIM_BUILD)/_vmake.vhdlan: $(SIM_VHDL_FILELIST) $(CUSTOM_COMPILE_DEPS)
 	cd $(@D) && \
-	vhdlan $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) $(COMPILE_ARGS) $(EXTRA_ARGS) -l vhdl.log -f $(<F)
+	vhdlan $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) \
+	    $(COMPILE_ARGS) $(EXTRA_ARGS) -l vhdl.log -f $(<F)
 	touch $@
 
 ELAB_DEPS += $(SIM_BUILD)/_vmake.vhdlan
@@ -156,16 +158,17 @@ endif
 $(SIM_BUILD)/simv: $(ELAB_DEPS) | $(SIM_BUILD)
 	cd $(SIM_BUILD) && \
 	TOPLEVEL=$(TOPLEVEL) \
-	$(CMD) -top $(TOPLEVEL) $(PLUSARGS) \
-	-timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
-	$(EXTRA_ARGS) -load $(shell cocotb-config --lib-name-path $(VCS_PI_LIBRARY) vcs) $(ELAB_ARGS)
+	$(CMD) -top $(TOPLEVEL) $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) \
+	    -timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
+	    $(EXTRA_ARGS) -load $(shell cocotb-config --lib-name-path $(VCS_PI_LIBRARY) vcs) $(ELAB_ARGS)
 
 # Execution phase
 $(COCOTB_RESULTS_FILE): $(SIM_BUILD)/simv $(CUSTOM_SIM_DEPS)
 	$(RM) $(COCOTB_RESULTS_FILE)
 
 	MODULE=$(MODULE) TESTCASE=$(TESTCASE) TOPLEVEL=$(TOPLEVEL) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
-	$(SIM_CMD_PREFIX) $(SIM_BUILD)/simv +define+COCOTB_SIM=1 $(SIM_ARGS) $(EXTRA_ARGS) $(PLUSARGS) $(SIM_CMD_SUFFIX)
+	    $(SIM_CMD_PREFIX) $(SIM_BUILD)/simv $(SIM_ARGS) $(filter-out -full64,$(EXTRA_ARGS)) \
+	    $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) $(SIM_CMD_SUFFIX)
 
 	$(call check_for_results_file)
 
