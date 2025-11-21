@@ -61,7 +61,11 @@ ifeq ($(PYTHON_ARCH),64bit)
 endif
 
 ifeq ($(GUI),1)
-    EXTRA_ARGS += -gui
+    ifneq ($(VERDI_HOME),)
+        EXTRA_ARGS += -verdi
+    else
+        EXTRA_ARGS += -gui
+    endif
 endif
 
 # Avoid linker "undefined reference to" error
