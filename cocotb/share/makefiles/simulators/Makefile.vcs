@@ -91,7 +91,8 @@ CUSTOM_COMPILE_DEPS   ?=
 # Compile Verilog sources (if present)
 ifneq ($(VERILOG_SOURCES),)
 vlog_filelist_base = filelist_vlog
-SIM_VLOG_FILELIST  = $(SIM_BUILD)/$(vlog_filelist_base)-$(call sha256sum,$(VERILOG_SOURCES)).f
+SIM_VLOG_FILELIST_DEPS = $(VERILOG_SOURCES) $(COMPILE_ARGS) $(PLUSARGS) $(EXTRA_ARGS) $(COCOTB_HDL_TIMEUNIT) $(COCOTB_HDL_PRECISION)
+SIM_VLOG_FILELIST      = $(SIM_BUILD)/$(vlog_filelist_base)-$(call sha256sum,$(SIM_VLOG_FILELIST_DEPS)).f
 
 $(SIM_VLOG_FILELIST): $(VERILOG_SOURCES) | $(SIM_BUILD)
 	rm -f $(SIM_BUILD)/$(vlog_filelist_base)*.f
@@ -127,7 +128,8 @@ VHDL_SOURCES ?=
 # Compile VHDL sources (if present)
 ifneq ($(VHDL_SOURCES),)
 vhdl_filelist_base = filelist_vhdl
-SIM_VHDL_FILELIST  = $(SIM_BUILD)/$(vhdl_filelist_base)-$(call sha256sum,$(VHDL_SOURCES)).f
+SIM_VHDL_FILELIST_DEPS = $(VHDL_SOURCES) $(COMPILE_ARGS) $(PLUSARGS) $(EXTRA_ARGS)
+SIM_VHDL_FILELIST      = $(SIM_BUILD)/$(vhdl_filelist_base)-$(call sha256sum,$(SIM_VHDL_FILELIST_DEPS)).f
 
 $(SIM_VHDL_FILELIST): $(VHDL_SOURCES) | $(SIM_BUILD)
 	rm -f $(SIM_BUILD)/$(vhdl_filelist_base)*.f
