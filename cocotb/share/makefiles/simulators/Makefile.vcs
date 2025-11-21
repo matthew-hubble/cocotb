@@ -115,8 +115,7 @@ $(SIM_VLOG_FILELIST): $(VERILOG_SOURCES) | $(SIM_BUILD)
 
 $(SIM_BUILD)/_vmake.vlogan: $(SIM_VLOG_FILELIST) $(CUSTOM_COMPILE_DEPS)
 	cd $(@D) && \
-	vlogan $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) +define+COCOTB_SIM=1 \
-	    -timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
+	vlogan $(PLUSARGS) +define+COCOTB_SIM=1 -timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
 	    $(COMPILE_ARGS) $(EXTRA_ARGS) -l vlog.log -f $(<F)
 	touch $@
 
@@ -138,8 +137,7 @@ $(SIM_VHDL_FILELIST): $(VHDL_SOURCES) | $(SIM_BUILD)
 
 $(SIM_BUILD)/_vmake.vhdlan: $(SIM_VHDL_FILELIST) $(CUSTOM_COMPILE_DEPS)
 	cd $(@D) && \
-	vhdlan $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) \
-	    $(COMPILE_ARGS) $(EXTRA_ARGS) -l vhdl.log -f $(<F)
+	vhdlan $(PLUSARGS) $(COMPILE_ARGS) $(EXTRA_ARGS) -l vhdl.log -f $(<F)
 	touch $@
 
 ELAB_DEPS += $(SIM_BUILD)/_vmake.vhdlan
@@ -158,8 +156,7 @@ endif
 $(SIM_BUILD)/simv: $(ELAB_DEPS) | $(SIM_BUILD)
 	cd $(SIM_BUILD) && \
 	TOPLEVEL=$(TOPLEVEL) \
-	$(CMD) -top $(TOPLEVEL) $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) \
-	    -timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
+	$(CMD) -top $(TOPLEVEL) $(PLUSARGS) -timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
 	    $(EXTRA_ARGS) -load $(shell cocotb-config --lib-name-path $(VCS_PI_LIBRARY) vcs) $(ELAB_ARGS)
 
 # Execution phase
@@ -168,7 +165,7 @@ $(COCOTB_RESULTS_FILE): $(SIM_BUILD)/simv $(CUSTOM_SIM_DEPS)
 
 	MODULE=$(MODULE) TESTCASE=$(TESTCASE) TOPLEVEL=$(TOPLEVEL) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 	    $(SIM_CMD_PREFIX) $(SIM_BUILD)/simv $(SIM_ARGS) $(filter-out -full64,$(EXTRA_ARGS)) \
-	    $(call deprecate,PLUSARGS,COCOTB_PLUSARGS) $(SIM_CMD_SUFFIX)
+	    $(PLUSARGS) $(SIM_CMD_SUFFIX)
 
 	$(call check_for_results_file)
 
