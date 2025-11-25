@@ -62,9 +62,9 @@ endif
 
 ifeq ($(GUI),1)
     ifneq ($(VERDI_HOME),)
-        EXTRA_ARGS += -verdi
+        SIM_ARGS += -verdi
     else
-        EXTRA_ARGS += -gui
+        SIM_ARGS += -gui
     endif
 endif
 
@@ -95,8 +95,9 @@ CUSTOM_COMPILE_DEPS   ?=
 
 # Compile Verilog sources (if present)
 ifneq ($(VERILOG_SOURCES),)
+
 vlog_filelist_base = filelist_vlog
-SIM_VLOG_FILELIST_DEPS = $(VERILOG_SOURCES) $(VERILOG_INCLUDE_DIRS) $(VERILOG_LIBRARY_DIRS) $(COMPILE_ARGS) $(PLUSARGS) $(EXTRA_ARGS) $(COCOTB_HDL_TIMEUNIT) $(COCOTB_HDL_TIMEPRECISION)
+SIM_VLOG_FILELIST_DEPS = $(VERILOG_SOURCES) $(VERILOG_INCLUDE_DIRS) $(VERILOG_LIBRARY_DIRS) $(COMPILE_ARGS) $(EXTRA_ARGS) $(COCOTB_HDL_TIMEUNIT) $(COCOTB_HDL_TIMEPRECISION)
 SIM_VLOG_FILELIST      = $(SIM_BUILD)/$(vlog_filelist_base)-$(call sha256sum,$(SIM_VLOG_FILELIST_DEPS)).f
 
 $(SIM_VLOG_FILELIST): $(VERILOG_SOURCES) | $(SIM_BUILD)
@@ -122,19 +123,21 @@ $(SIM_VLOG_FILELIST): $(VERILOG_SOURCES) | $(SIM_BUILD)
 
 $(SIM_BUILD)/_vmake.vlogan: $(SIM_VLOG_FILELIST) $(CUSTOM_COMPILE_DEPS)
 	cd $(@D) && \
-	vlogan $(PLUSARGS) +define+COCOTB_SIM=1 -timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
+	vlogan +define+COCOTB_SIM=1 -timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
 	    $(COMPILE_ARGS) $(EXTRA_ARGS) -l vlog.log -f $(<F)
 	touch $@
 
 ELAB_DEPS += $(SIM_BUILD)/_vmake.vlogan
-endif
+
+endif # VERILOG_SOURCES
 
 VHDL_SOURCES ?=
 
 # Compile VHDL sources (if present)
 ifneq ($(VHDL_SOURCES),)
+
 vhdl_filelist_base = filelist_vhdl
-SIM_VHDL_FILELIST_DEPS = $(VHDL_SOURCES) $(COMPILE_ARGS) $(PLUSARGS) $(EXTRA_ARGS)
+SIM_VHDL_FILELIST_DEPS = $(VHDL_SOURCES) $(COMPILE_ARGS) $(EXTRA_ARGS)
 SIM_VHDL_FILELIST      = $(SIM_BUILD)/$(vhdl_filelist_base)-$(call sha256sum,$(SIM_VHDL_FILELIST_DEPS)).f
 
 $(SIM_VHDL_FILELIST): $(VHDL_SOURCES) | $(SIM_BUILD)
@@ -147,11 +150,12 @@ $(SIM_VHDL_FILELIST): $(VHDL_SOURCES) | $(SIM_BUILD)
 
 $(SIM_BUILD)/_vmake.vhdlan: $(SIM_VHDL_FILELIST) $(CUSTOM_COMPILE_DEPS)
 	cd $(@D) && \
-	vhdlan $(PLUSARGS) $(COMPILE_ARGS) $(EXTRA_ARGS) -l vhdl.log -f $(<F)
+	vhdlan $(COMPILE_ARGS) $(EXTRA_ARGS) -l vhdl.log -f $(<F)
 	touch $@
 
 ELAB_DEPS += $(SIM_BUILD)/_vmake.vhdlan
-endif
+
+endif # VHDL_SOURCES
 
 # Load appropriate cocotb language programming interface library based on TOPLEVEL_LANG
 ifeq ($(TOPLEVEL_LANG),vhdl)
@@ -160,13 +164,13 @@ else ifeq ($(TOPLEVEL_LANG),verilog)
     VCS_PI_LIBRARY = vpi
 else
     $(error A valid value (verilog or vhdl) was not provided for TOPLEVEL_LANG)
-endif
+endif # TOPLEVEL_LANG
 
 # Elaboration phase
 $(SIM_BUILD)/simv: $(ELAB_DEPS) | $(SIM_BUILD)
 	cd $(SIM_BUILD) && \
 	TOPLEVEL=$(TOPLEVEL) \
-	$(CMD) -top $(TOPLEVEL) $(PLUSARGS) -timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
+	$(CMD) -top $(TOPLEVEL) -timescale=$(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION) \
 	    $(EXTRA_ARGS) -load $(shell cocotb-config --lib-name-path $(VCS_PI_LIBRARY) vcs) $(ELAB_ARGS)
 
 # Execution phase
