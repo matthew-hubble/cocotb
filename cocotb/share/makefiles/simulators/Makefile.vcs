@@ -170,6 +170,10 @@ $(SIM_BUILD)/simv: $(ELAB_DEPS) | $(SIM_BUILD)
 	    $(EXTRA_ARGS) -load $(shell cocotb-config --lib-name-path $(VCS_PI_LIBRARY) vcs) $(ELAB_ARGS)
 
 # Execution phase
+TESTCASE       ?=
+SIM_CMD_PREFIX ?=
+SIM_CMD_SUFFIX ?=
+
 $(COCOTB_RESULTS_FILE): $(SIM_BUILD)/simv $(CUSTOM_SIM_DEPS)
 	$(RM) $(COCOTB_RESULTS_FILE)
 
